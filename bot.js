@@ -1,6 +1,6 @@
-var io = require('socket.io-client');
+let io = require('socket.io-client');
 
-var socket = io('http://botws.generals.io');
+let socket = io('http://botws.generals.io');
 
 socket.on('disconnect', function() {
     console.error('Disconnected from server.');
@@ -13,17 +13,17 @@ socket.on('connect', function() {
     /* Don't lose this user_id or let other people see it!
      * Anyone with your user_id can play on your bot's account and pretend to be your bot.
      * If you plan on open sourcing your bot's code (which we strongly support), we recommend
-     * replacing this line with something that instead supplies the user_id via an environment variable, e.g.
-     * var user_id = process.env.BOT_USER_ID;
+     * replacing this line with something that instead supplies the user_id via an environment letiable, e.g.
+     * let user_id = process.env.BOT_USER_ID;
      */
-    var user_id = process.env.BOT_USER_ID;
-    var username = '[Bot]ox';
+    let user_id = process.env.BOT_USER_ID;
+    let username = '[Bot]ox';
 
     // Set the username for the bot.
     socket.emit('set_username', user_id, username);
     // Join a custom game and force start immediately.
     // Custom games are a great way to test your bot while you develop it because you can play against your bot!
-    var custom_game_id = process.env.BOT_GAME_ID;
+    let custom_game_id = process.env.BOT_GAME_ID;
     socket.emit('join_private', custom_game_id, user_id);
     //socket.emit('join_1v1', user_id);
     socket.emit('set_force_start', custom_game_id, true);
@@ -33,30 +33,30 @@ socket.on('connect', function() {
 // Terrain Constants.
 // Any tile with a nonnegative value is owned by the player corresponding to its value.
 // For example, a tile with value 1 is owned by the player with playerIndex = 1.
-var TILE_EMPTY = -1;
-var TILE_MOUNTAIN = -2;
-var TILE_FOG = -3;
-var TILE_FOG_OBSTACLE = -4; // Cities and Mountains show up as Obstacles in the fog of war.
+let TILE_EMPTY = -1;
+let TILE_MOUNTAIN = -2;
+let TILE_FOG = -3;
+let TILE_FOG_OBSTACLE = -4; // Cities and Mountains show up as Obstacles in the fog of war.
 
 // Game data.
-var playerIndex;
-var turn;
-var generals;
-var cities = [];
-var map = [];
+let playerIndex;
+let turn;
+let generals;
+let cities = [];
+let map = [];
 //map coords
-var ownTiles = [];
-var border = [];
-var ownGeneral = 0;
-var width = 0;
-var height = 0;
-var size = 0;
-var initialised = false;
+let ownTiles = [];
+let border = [];
+let ownGeneral = 0;
+let width = 0;
+let height = 0;
+let size = 0;
+let initialised = false;
 let bfsed = false;
 
-var lastMoved = -1;
+let lastMoved = -1;
 
-var chat_room;
+let chat_room;
 
 let levels = [];
 let levelOrderedTiles = [];
@@ -69,7 +69,7 @@ socket.on('game_start', function(data) {
     // Get ready to start playing the game.
     playerIndex = data.playerIndex;
     chat_room = data.chat_room;
-    var replay_url = 'http://bot.generals.io/replays/' + encodeURIComponent(data.replay_id);
+    let replay_url = 'http://bot.generals.io/replays/' + encodeURIComponent(data.replay_id);
     console.log('Game starting! The replay will be available after the game at ' + replay_url);
     socket.emit('chat_message', chat_room, 'Hi sweetie <3');
     socket.emit('chat_message', chat_room, 'ASL?');
@@ -82,7 +82,7 @@ function gameUpdate(data) {
     if(!initialised){
         initialise(data);
     }
-    // Patch the city and map diffs into our local variables.
+    // Patch the city and map diffs into our local letiables.
     cities = patch(cities, data.cities_diff);
     map = patchMap(map, data.map_diff);
     generals = data.generals;
@@ -93,11 +93,11 @@ function gameUpdate(data) {
 
     // The next |size| terms are army values.
     // armies[0] is the top-left corner of the map.
-    var armies = map.slice(2, size + 1);
+    let armies = map.slice(2, size + 1);
 
     // The last |size| terms are terrain values.
     // terrain[0] is the top-left corner of the map.
-    var terrain = map.slice(size + 2, map.length - 1);
+    let terrain = map.slice(size + 2, map.length - 1);
 
     if(!bfsed) {
         bfs(ownGeneral, terrain);
@@ -107,14 +107,14 @@ function gameUpdate(data) {
     //console.log();
     //printArr(wayMetrix);
 
-    //var maxArmies = 0;
-    //var maxTile = -1;
+    //let maxArmies = 0;
+    //let maxTile = -1;
 
     if(turn >= 24) {
 
-        var ownTileRating = [];
-        for (var i = 0; i < ownTiles.length; i++) {
-            var element = ownTiles[i];
+        let ownTileRating = [];
+        for (let i = 0; i < ownTiles.length; i++) {
+            let element = ownTiles[i];
             ownTileRating[i] = 0;
             if (element === ownGeneral) {
                 ownTileRating[i] -= 15;
@@ -125,7 +125,7 @@ function gameUpdate(data) {
             else {
                 ownTileRating[i] += armies[element];
             }
-            var neighbors = getNeighbors(element);
+            let neighbors = getNeighbors(element);
             neighbors.forEach(function (neighbor) {
                 if (terrain[neighbor] >= -1 && terrain[neighbor] != playerIndex) {
                     ownTileRating[i] += 25;
@@ -136,13 +136,13 @@ function gameUpdate(data) {
             maxTile = element;
         }*/
         }
-        var fromOwnTile = getMaxArrIndex(ownTileRating);
-        var fromIndex = ownTiles[fromOwnTile];
-        var neighbors = getNeighbors(fromIndex);
-        var neighborRating = [];
-        for (var i = 0; i < neighbors.length; i++) {
+        let fromOwnTile = getMaxArrIndex(ownTileRating);
+        let fromIndex = ownTiles[fromOwnTile];
+        let neighbors = getNeighbors(fromIndex);
+        let neighborRating = [];
+        for (let i = 0; i < neighbors.length; i++) {
             neighborRating[i] = 0;
-            var neighbor = neighbors[i];
+            let neighbor = neighbors[i];
             if(neighbor == lastFrom){
                 neighborRating[i] -= 1000000;
             }
@@ -161,15 +161,15 @@ function gameUpdate(data) {
             //Free
             else if (terrain[neighbor] === -1) {
                 neighborRating[i] += 150000;
+                neighborRating[i] += wayMetrix[neighbor] / wayMetrix[ownGeneral] * 100000;
             }
             //Enemy
             if (armies[neighbor] >= 0 && terrain[neighbor] != playerIndex) {
                 neighborRating[i] += (armies[fromIndex] - armies[neighbor] - 1) * 150000;
             }
-            neighborRating[i] += wayMetrix[i] / wayMetrix[ownGeneral] * 10000000;
         }
-        var toNeighbor = getMaxArrIndex(neighborRating);
-        var toInder = neighbors[toNeighbor];
+        let toNeighbor = getMaxArrIndex(neighborRating);
+        let toInder = neighbors[toNeighbor];
 
         lastFrom = fromIndex;
         socket.emit('attack', fromIndex, toInder);
@@ -204,8 +204,8 @@ function initialise(data){
  * Example 2: patching a diff of [0, 1, 2, 1] onto [0, 0] yields [2, 0].
  */
 function patch(old, diff) {
-    var out = [];
-    var i = 0;
+    let out = [];
+    let i = 0;
     while (i < diff.length) {
         if (diff[i]) {  // matching
             Array.prototype.push.apply(out, old.slice(out.length, out.length + diff[i]));
@@ -221,8 +221,8 @@ function patch(old, diff) {
 }
 
 function patchMap(old, diff) {
-    var out = [];
-    var i = 0;
+    let out = [];
+    let i = 0;
     while (i < diff.length) {
         if (diff[i]) {  // matching
             Array.prototype.push.apply(out, old.slice(out.length, out.length + diff[i]));
@@ -230,9 +230,9 @@ function patchMap(old, diff) {
         i++;
         if (i < diff.length && diff[i]) {  // mismatching
             for(j = 0; j < diff[i]; j++){
-                var mapindex = out.length + j;
+                let mapindex = out.length + j;
                 if(mapindex > size + 1) {
-                    var diffindex = i + j + 1;
+                    let diffindex = i + j + 1;
                     //iterate through all changed map tiles
                     tileChange(mapindex, diff[diffindex]);
                 }
@@ -246,7 +246,7 @@ function patchMap(old, diff) {
 }
 
 function tileChange(index, newVal){
-    var oldVal = map[index];
+    let oldVal = map[index];
     if(oldVal != playerIndex && newVal == playerIndex){
         ownTiles.push(mapToTerrainCoords(index));
     }
@@ -292,8 +292,8 @@ function getNeighbors(tileindex) {
 }
 
 function getMaxArrIndex(a){
-    var maxInd = [0];
-    for(var i = 1; i < a.length; i++){
+    let maxInd = [0];
+    for(let i = 1; i < a.length; i++){
         if(a[i] > a[maxInd[0]]){
             maxInd = [];
             maxInd.push(i);
@@ -308,19 +308,19 @@ function getMaxArrIndex(a){
 
 function bfs(start, terrain) {
     levels = [];
-    for(var i = 0; i < terrain.length; i++){
+    for(let i = 0; i < terrain.length; i++){
         levels[i] = null;
     }
     levels[start] = 0;
     levelOrderedTiles = [start];
-    var q = [start];
+    let q = [start];
 
-    var currLevel = 1;
-    var thisLevelItems = 1;
+    let currLevel = 1;
+    let thisLevelItems = 1;
     while(q.length > 0){
-        var value = q.shift();
-        var neighbors = getNeighbors(value);
-        for(var i = 0; i < neighbors.length; i++){
+        let value = q.shift();
+        let neighbors = getNeighbors(value);
+        for(let i = 0; i < neighbors.length; i++){
             if(levels[neighbors[i]] === null && terrain[neighbors[i]] !== -2 && terrain[neighbors[i]] !== -4){
                 q.push(neighbors[i]);
                 levelOrderedTiles.push(neighbors[i]);
