@@ -1,0 +1,23 @@
+{
+  "name": "botox",
+  "version": "1.0.0",
+  "description": "cool bot",
+  "main": "bot.js",
+  "dependencies": {
+    "socket.io": "^1.7.2"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Lukski/Botox.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Lukski/Botox/issues"
+  },
+  "homepage": "https://github.com/Lukski/Botox#readme"
+}
