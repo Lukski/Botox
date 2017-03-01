@@ -44,6 +44,8 @@ let turn;
 let generals;
 let cities = [];
 let map = [];
+let terrain = [];
+let armies = [];
 //map coords
 let ownTiles = [];
 let border = [];
@@ -54,6 +56,8 @@ let size = 0;
 let initialised = false;
 let bfsed = false;
 
+let enemyG = -1;
+
 let lastMoved = -1;
 
 let chat_room;
@@ -62,7 +66,7 @@ let levels = [];
 let levelOrderedTiles = [];
 let wayMetrix = [];
 
-let lastFrom = 0;
+let lastFrom = -1;
 
 
 socket.on('game_start', function(data) {
@@ -72,7 +76,6 @@ socket.on('game_start', function(data) {
     let replay_url = 'http://bot.generals.io/replays/' + encodeURIComponent(data.replay_id);
     console.log('Game starting! The replay will be available after the game at ' + replay_url);
     socket.emit('chat_message', chat_room, 'Hi sweetie <3');
-    socket.emit('chat_message', chat_room, 'ASL?');
 });
 
 socket.on('game_update', gameUpdate);
@@ -80,12 +83,21 @@ socket.on('game_update', gameUpdate);
 function gameUpdate(data) {
     console.log(data.turn);
     if(!initialised){
+        socket.emit('chat_message', chat_room, 'ASL?');
         initialise(data);
     }
     // Patch the city and map diffs into our local letiables.
     cities = patch(cities, data.cities_diff);
     map = patchMap(map, data.map_diff);
-    generals = data.generals;
+
+    for(let i = 0; i < data.generals.length; i++){
+        if(generals[i] === -1 && data.generals[i] !== -1){
+            generals[i] = data.generals[i];
+            if(i !== playerIndex){
+                enemyG = generals[i];
+            }
+        }
+    }
     turn = data.turn;
     ownGeneral = generals[playerIndex];
 
@@ -93,14 +105,15 @@ function gameUpdate(data) {
 
     // The next |size| terms are army values.
     // armies[0] is the top-left corner of the map.
-    let armies = map.slice(2, size + 1);
+    armies = map.slice(2, size + 2);
 
     // The last |size| terms are terrain values.
     // terrain[0] is the top-left corner of the map.
-    let terrain = map.slice(size + 2, map.length - 1);
-
+    terrain = map.slice(size + 2, map.length);
+    
     if(!bfsed) {
-        bfs(ownGeneral, terrain);
+        bfs(ownGeneral, -1);
+        wayMetric();
         bfsed = true;
     }
     //printArr(levels);
@@ -140,11 +153,22 @@ function gameUpdate(data) {
         let fromIndex = ownTiles[fromOwnTile];
         let neighbors = getNeighbors(fromIndex);
         let neighborRating = [];
+        let goodMoves = [];
+        if(enemyG !== -1){
+            bfs(enemyG, fromIndex);
+            goodMoves = getForelastLevel(levels, fromIndex);
+        }
         for (let i = 0; i < neighbors.length; i++) {
             neighborRating[i] = 0;
             let neighbor = neighbors[i];
             if(neighbor == lastFrom){
                 neighborRating[i] -= 1000000;
+            }
+            //Attack the general
+            if(enemyG !== -1){
+                if(goodMoves.includes(neighbor)){
+                    neighborRating[i] += 2000000;
+                }
             }
             //City
             /**if(cities.indexOf(neighbor) >= 0){
@@ -160,12 +184,27 @@ function gameUpdate(data) {
             }
             //Free
             else if (terrain[neighbor] === -1) {
-                neighborRating[i] += 150000;
-                neighborRating[i] += wayMetrix[neighbor] / wayMetrix[ownGeneral] * 100000;
+                //city/grey
+                if (armies[neighbor] > 0){
+                    neighborRating[i] += (armies[fromIndex] - armies[neighbor] - 1) * 100000;
+                }
+                else {
+                    neighborRating[i] += 150000;
+                    if (wayMetrix[neighbor] < wayMetrix[fromIndex]) {
+                        neighborRating[i] += wayMetrix[neighbor] / wayMetrix[ownGeneral] * 100000;
+                    }
+                }
             }
             //Enemy
-            if (armies[neighbor] >= 0 && terrain[neighbor] != playerIndex) {
-                neighborRating[i] += (armies[fromIndex] - armies[neighbor] - 1) * 150000;
+            else if (armies[neighbor] >= 0 && terrain[neighbor] != playerIndex) {
+                neighborRating[i] += (armies[fromIndex] - armies[neighbor] - 1) * 200000;
+            }
+            //Own
+            else if (armies[neighbor] >= 0 && terrain[neighbor] == playerIndex) {
+                neighborRating[i] += (armies[neighbor] / armies[fromIndex]) * 20000;
+                if(wayMetrix[neighbor] < wayMetrix[fromIndex]) {
+                    neighborRating[i] += wayMetrix[neighbor] / wayMetrix[ownGeneral] * 100000;
+                }
             }
         }
         let toNeighbor = getMaxArrIndex(neighborRating);
@@ -191,6 +230,7 @@ function initialise(data){
     height = data.map_diff[3];
     size = width * height;
     console.log("size: " + width + " x " + height + " = " + size);
+    generals = data.generals;
     initialised = true;
 }
 
@@ -306,7 +346,7 @@ function getMaxArrIndex(a){
     //return a.reduce((iMax, x, i, arr) => x > arr[iMax] ? i : iMax, 0);
 }
 
-function bfs(start, terrain) {
+function bfs(start, end) {
     levels = [];
     for(let i = 0; i < terrain.length; i++){
         levels[i] = null;
@@ -327,16 +367,19 @@ function bfs(start, terrain) {
                 levels[neighbors[i]] = currLevel;
             }
         }
+        if(value === end){
+            return levels;
+        }
         thisLevelItems--;
         if(thisLevelItems == 0){
             currLevel++;
             thisLevelItems = q.length;
         }
     }
-    wayMetric(terrain);
+    return levels;
 }
 
-function wayMetric(terrain){
+function wayMetric(){
     for(let i = 0; i < terrain.length; i++){
         wayMetrix[i] = 0;
     }
@@ -353,6 +396,19 @@ function wayMetric(terrain){
             }
         }
     }
+}
+
+function getForelastLevel(levels, end){
+    let maxLevel = levels[end];
+    let forelastLevel = [];
+    let neighbors = getNeighbors(end);
+    for(let i = 0; i < neighbors.length; i++){
+        let nindex = neighbors[i];
+        if(levels[nindex] === maxLevel - 1){
+            forelastLevel.push(nindex);
+        }
+    }
+    return forelastLevel;
 }
 
 function printArr(array){
