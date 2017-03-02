@@ -17,7 +17,7 @@ socket.on('connect', function() {
      * let user_id = process.env.BOT_USER_ID;
      */
     let user_id = process.env.BOT_USER_ID;
-    let username = '[Bot]ox';
+    let username = '[Bot]ox9000';
 
     // Set the username for the bot.
     socket.emit('set_username', user_id, username);
@@ -75,6 +75,12 @@ socket.on('game_start', function(data) {
     chat_room = data.chat_room;
     let replay_url = 'http://bot.generals.io/replays/' + encodeURIComponent(data.replay_id);
     console.log('Game starting! The replay will be available after the game at ' + replay_url);
+    console.log("vs: ");
+    for(let i = 0; i < data.usernames.length; i++){
+        if(i !== playerIndex){
+            console.log(data.usernames[i]);
+        }
+    }
     socket.emit('chat_message', chat_room, 'Hi sweetie <3');
 });
 
@@ -219,14 +225,24 @@ function gameUpdate(data) {
     }
 }
 
+function won() {
+    console.log("Won. nice!");
+    leaveGame();
+}
+
+function lost() {
+    console.log("lost :(");
+    leaveGame();
+}
+
 function leaveGame() {
     socket.emit('leave_game');
     process.exit();
 }
 
-socket.on('game_lost', leaveGame);
+socket.on('game_lost', lost);
 
-socket.on('game_won', leaveGame);
+socket.on('game_won', won);
 
 function initialise(data){
     width = data.map_diff[2];
