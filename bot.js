@@ -24,10 +24,10 @@ socket.on('connect', function() {
     // Join a custom game and force start immediately.
     // Custom games are a great way to test your bot while you develop it because you can play against your bot!
     let custom_game_id = process.env.BOT_GAME_ID;
-    socket.emit('join_private', custom_game_id, user_id);
-    //socket.emit('join_1v1', user_id);
-    socket.emit('set_force_start', custom_game_id, true);
-    console.log('Joined custom game at http://bot.generals.io/games/' + encodeURIComponent(custom_game_id));
+    //socket.emit('join_private', custom_game_id, user_id);
+    socket.emit('join_1v1', user_id);
+    //socket.emit('set_force_start', custom_game_id, true);
+    //console.log('Joined custom game at http://bot.generals.io/games/' + encodeURIComponent(custom_game_id));
 });
 
 // Terrain Constants.
@@ -101,7 +101,7 @@ function gameUpdate(data) {
     turn = data.turn;
     ownGeneral = generals[playerIndex];
 
-    console.log(ownTiles);
+    console.log(ownTiles.length);
 
     // The next |size| terms are army values.
     // armies[0] is the top-left corner of the map.
@@ -110,7 +110,7 @@ function gameUpdate(data) {
     // The last |size| terms are terrain values.
     // terrain[0] is the top-left corner of the map.
     terrain = map.slice(size + 2, map.length);
-    
+
     if(!bfsed) {
         bfs(ownGeneral, -1);
         wayMetric();
@@ -164,8 +164,11 @@ function gameUpdate(data) {
             if(neighbor == lastFrom){
                 neighborRating[i] -= 1000000;
             }
+            else if(neighbor === enemyG && armies[neighbor] < armies[fromIndex]){
+                neighborRating[i] += 9999999999999;
+            }
             //Attack the general
-            if(enemyG !== -1){
+            if(enemyG !== -1 && armies[enemyG] < armies[fromIndex]){
                 if(goodMoves.includes(neighbor)){
                     neighborRating[i] += 2000000;
                 }
