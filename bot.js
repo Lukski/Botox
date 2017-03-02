@@ -17,7 +17,7 @@ socket.on('connect', function() {
      * let user_id = process.env.BOT_USER_ID;
      */
     let user_id = process.env.BOT_USER_ID;
-    let username = '[Bot]ox9000';
+    let username = '[Bot]ox';
 
     // Set the username for the bot.
     socket.emit('set_username', user_id, username);
@@ -67,13 +67,14 @@ let levelOrderedTiles = [];
 let wayMetrix = [];
 
 let lastFrom = -1;
+let replay_url = '';
 
 
 socket.on('game_start', function(data) {
     // Get ready to start playing the game.
     playerIndex = data.playerIndex;
     chat_room = data.chat_room;
-    let replay_url = 'http://bot.generals.io/replays/' + encodeURIComponent(data.replay_id);
+    replay_url = 'http://bot.generals.io/replays/' + encodeURIComponent(data.replay_id);
     console.log('Game starting! The replay will be available after the game at ' + replay_url);
     console.log("vs: ");
     for(let i = 0; i < data.usernames.length; i++){
@@ -87,7 +88,6 @@ socket.on('game_start', function(data) {
 socket.on('game_update', gameUpdate);
 
 function gameUpdate(data) {
-    console.log(data.turn);
     if(!initialised){
         socket.emit('chat_message', chat_room, 'ASL?');
         initialise(data);
@@ -106,8 +106,6 @@ function gameUpdate(data) {
     }
     turn = data.turn;
     ownGeneral = generals[playerIndex];
-
-    console.log(ownTiles.length);
 
     // The next |size| terms are army values.
     // armies[0] is the top-left corner of the map.
@@ -130,6 +128,8 @@ function gameUpdate(data) {
     //let maxTile = -1;
 
     if(turn >= 24) {
+        console.log(data.turn);
+        console.log(ownTiles.length);
 
         let ownTileRating = [];
         for (let i = 0; i < ownTiles.length; i++) {
@@ -236,6 +236,7 @@ function lost() {
 }
 
 function leaveGame() {
+    console.log(replay_url);
     socket.emit('leave_game');
     process.exit();
 }
